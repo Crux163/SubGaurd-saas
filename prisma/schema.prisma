@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String         @id @default(cuid())
+  email            String         @unique
+  plan             PlanTier       @default(FREE)
+  stripeCustomerId String?        @unique
+  householdId      String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  subscriptions    Subscription[]
+  invitesSent      HouseholdInvite[]
+}
+
+model Subscription {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  category      String
+  amount        Float
+  previousAmount Float?
+  billingCycle  BillingCycle @default(MONTHLY)
+  nextRenewal   DateTime
+  sharedWithHousehold Boolean @default(false)
+  status        SubStatus    @default(ACTIVE)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model HouseholdInvite {
+  id         String   @id @default(cuid())
+  token      String   @unique
+  inviterId  String
+  inviter    User     @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+  acceptedBy String?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+}
+
+enum PlanTier {
+  FREE
+  PRO_MONTHLY
+  PRO_LIFETIME
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+  WEEKLY
+}
+
+enum SubStatus {
+  ACTIVE
+  PAUSED
+  FLAGGED_CANCEL
+}
